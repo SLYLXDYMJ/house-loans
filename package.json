@@ -1,6 +1,6 @@
 {
   "name": "house-loans",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "./dist/houseLoans.umd.min.js",
   "scripts": {
     "build": "cross-env NODE_ENV=document vue-cli-service build example/main.js & cross-env NODE_ENV=production vue-cli-service build --target lib --name houseLoans ./src/index.js",

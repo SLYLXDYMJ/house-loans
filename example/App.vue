@@ -91,35 +91,6 @@
             label-width="120px"
             @submit="gongjijinSubmit">
             <!-- 房款总额 -->
-            <el-form-item label="商贷总额">
-              <el-input
-                v-model.number="zuhe.form.shangyong.total"
-                type="number"
-                placeholder="请输入内容">
-                <template slot="append">万</template>
-              </el-input>
-            </el-form-item>
-            <!-- 房贷年限 -->
-            <el-form-item label="商贷年限">
-              <el-slider
-                v-model="zuhe.form.shangyong.year"
-                :min="1"
-                :max="30"/>
-            </el-form-item>
-            <!-- 利率 -->
-            <el-form-item label="商贷利率">
-              <el-select v-model="zuhe.form.shangyong.rate" placeholder="请选择">
-                <el-option
-                  v-for="item in shangyong.rateArr"
-                  :key="item.rate"
-                  :label="`${item.label}(${Number((item.rate * 100).toFixed(3))})`"
-                  :value="item.rate">
-                </el-option>
-              </el-select>
-            </el-form-item>
-            <!-- space -->
-            <el-divider/>
-            <!-- 房款总额 -->
             <el-form-item label="公积金贷款总额">
               <el-input
                 v-model.number="zuhe.form.gongjijin.total"
@@ -140,6 +111,35 @@
               <el-select v-model="zuhe.form.gongjijin.rate" placeholder="请选择">
                 <el-option
                   v-for="item in zuhe.form.gongjijin.year <= 5 ? gongjijin.rateArrLte5 : gongjijin.rateArrGt5"
+                  :key="item.rate"
+                  :label="`${item.label}(${Number((item.rate * 100).toFixed(3))})`"
+                  :value="item.rate">
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <!-- space -->
+            <el-divider/>
+            <!-- 商贷总额 -->
+            <el-form-item label="商贷总额">
+              <el-input
+                v-model.number="zuhe.form.shangyong.total"
+                type="number"
+                placeholder="请输入内容">
+                <template slot="append">万</template>
+              </el-input>
+            </el-form-item>
+            <!-- 商贷年限 -->
+            <el-form-item label="商贷年限">
+              <el-slider
+                v-model="zuhe.form.shangyong.year"
+                :min="1"
+                :max="30"/>
+            </el-form-item>
+            <!-- 商贷利率 -->
+            <el-form-item label="商贷利率">
+              <el-select v-model="zuhe.form.shangyong.rate" placeholder="请选择">
+                <el-option
+                  v-for="item in shangyong.rateArr"
                   :key="item.rate"
                   :label="`${item.label}(${Number((item.rate * 100).toFixed(3))})`"
                   :value="item.rate">
@@ -313,11 +313,6 @@
             let result1 = loans(total * 10000, year, rate, 0)
             let result2 = loans(total * 10000, year, rate, 1)
 
-            // 格式化 bill
-            _.each([ result1, result2 ], result => {
-              result.bill = this.formatBill(result.bill)
-            })
-
             return [ result1, result2 ]
           })
           .tap(resultArr => {
@@ -330,11 +325,10 @@
           // 分组商贷和公积金贷款
           // [['商等额本息', '公等额本息'], ['商等额本金', '公等额本金']]
           .thru(resultArr => {
-            let tmpResultArr = [
+            return [
               [ resultArr[ 0 ][ 0 ], resultArr[ 1 ][ 0 ] ],
               [ resultArr[ 0 ][ 1 ], resultArr[ 1 ][ 1 ] ]
             ]
-            return tmpResultArr
           })
           .tap(resultArr => {
             console.log('--------------------------------------')
@@ -354,9 +348,33 @@
               if (_.isNumber(oldValue)) {
                 return _.round(oldValue + srcValue, 2)
               }
+              // 公贷和商贷年限可能不一样
+              // 这里根据账单月长度确定最大年限
+              // 并合并每个月对应的的钱数
               else if (_.isArray(oldValue)) {
-                return _.map(oldValue, (oldItem, i) => {
-                  return assign(oldValue[ i ], srcValue[ i ])
+                let longArr = null
+                let shortArr = null
+                let oldLength = oldValue.length
+                let srcLength = srcValue.length
+
+                // 确定长、短账单数组
+                if (oldLength > srcLength) {
+                  longArr = oldValue
+                  shortArr = srcValue
+                }
+                else {
+                  longArr = srcValue
+                  shortArr = oldValue
+                }
+
+                return _.map(longArr, (itemArr, i) => {
+                  return _.map(itemArr, (item, j) => {
+                    // 防止不存在而发生的报错
+                    shortArr[ i ] = shortArr[ i ] || []
+                    shortArr[ i ][ j ] = shortArr[ i ][ j ] || 0
+                    // 合并账单金额
+                    return _.round(longArr[ i ][ j ] + shortArr[ i ][ j ], 2)
+                  })
                 })
               }
             }
@@ -369,6 +387,11 @@
             console.log('')
           })
           .value()
+
+        // 格式化 bill
+        _.each(resultArr, result => {
+          result.bill = this.formatBill(result.bill)
+        })
 
         this.resultArr = _.cloneDeep(resultArr)
       },
