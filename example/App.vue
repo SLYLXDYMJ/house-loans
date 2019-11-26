@@ -340,41 +340,23 @@
           // 合并两种模式的等额本金和等额本息
           // [ 等额本息, 等额本金 ]
           .map((arr, i) => {
-            return assign(...arr)
-            function assign (...args) {
-              return _.assignWith({}, ...args, merge)
-            }
-            function merge (oldValue, srcValue) {
+            return _.assignWith({}, ...arr, mergeDeep)
+
+            function mergeDeep (oldValue, srcValue) {
               if (_.isNumber(oldValue)) {
+                srcValue = srcValue || 0
                 return _.round(oldValue + srcValue, 2)
               }
-              // 公贷和商贷年限可能不一样
-              // 这里根据账单月长度确定最大年限
-              // 并合并每个月对应的的钱数
               else if (_.isArray(oldValue)) {
                 let longArr = null
-                let shortArr = null
-                let oldLength = oldValue.length
-                let srcLength = srcValue.length
+                let sortArr = null
 
-                // 确定长、短账单数组
-                if (oldLength > srcLength) {
-                  longArr = oldValue
-                  shortArr = srcValue
-                }
-                else {
-                  longArr = srcValue
-                  shortArr = oldValue
-                }
+                srcValue = srcValue || []
+                longArr = oldValue.length > srcValue.length ? oldValue : srcValue
+                sortArr = longArr === oldValue ? srcValue : oldValue
 
-                return _.map(longArr, (itemArr, i) => {
-                  return _.map(itemArr, (item, j) => {
-                    // 防止不存在而发生的报错
-                    shortArr[ i ] = shortArr[ i ] || []
-                    shortArr[ i ][ j ] = shortArr[ i ][ j ] || 0
-                    // 合并账单金额
-                    return _.round(longArr[ i ][ j ] + shortArr[ i ][ j ], 2)
-                  })
+                return _.map(longArr, function (item, i) {
+                  return mergeDeep(longArr[ i ], sortArr[ i ])
                 })
               }
             }
