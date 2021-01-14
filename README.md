@@ -1,6 +1,9 @@
 # house-loans
 > 房屋贷款计算，有 等额本息 和 等额本金 两种算法
 
+## Demo
+> https://q-jason.github.io/house-loans/
+
 ## 引入
 
 ```html
